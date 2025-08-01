@@ -305,12 +305,40 @@
         .outro {
             background-color: #e8f5e9; /* A calm green */
             border-left-color: #4caf50;
+                }
+                /* --- Quiz button & top bar ------------------------------------- */
+        .top-bar{
+            grid-column: 1 / -1;          /* サイドバー＋本文をまたぐ */
+            height: var(--header-height); /* = 60px (既に定義済み)      */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background:#fff;
+            border-bottom:1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            position: sticky;             /* スクロールしても上部固定 */
+            top:0;
+            z-index:1000;
+        }
+        .quiz-button{
+            background: var(--primary-color);
+            color:#fff;
+            padding:0.5rem 1.25rem;
+            border-radius:6px;
+            font-weight:600;
+            text-decoration:none;
+            transition: background .2s ease;
+        }
+        .quiz-button:hover{
+            background: var(--primary-dark);
         }
 
     </style>
 </head>
 <body>
-
+    <header class="top-bar">
+        <a href="index2.html" class="quiz-button">📝 クイズモード</a>
+    </header>
     <nav id="table-of-contents">
        <h3 id="toc-title">解説 目次</h3>
        <ul id="toc-list"></ul>
