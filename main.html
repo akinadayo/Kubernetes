@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コンテナ技術とKubernetesの世界：完全解説</title>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "highlight.js": "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/highlight.min.js",
+            "dockerfile": "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/languages/dockerfile.min.js"
+        }
+    }
+    </script>
+    
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --primary-color: #0d6efd;
+            --primary-light: #cfe2ff;
+            --primary-dark: #0a58ca;
+            --border-color: #dee2e6;
+            --sidebar-bg: #ffffff;
+            --sidebar-width: 300px;
+            --header-height: 60px;
+            --code-bg: #e9ecef;
+            --code-color: #343a40;
+            --quote-bg: #f1f3f5;
+            --quote-border: #adb5bd;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            --font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        /* Dark mode styles can be added here if needed */
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--font-family-sans-serif);
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.7;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            grid-template-rows: auto;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        h1 { font-size: 2.25rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; margin-top:0;}
+        h2 { font-size: 1.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.25rem; }
+        h3 { font-size: 1.4rem; }
+        h4 { font-size: 1.1rem; }
+
+        p {
+            margin-top: 0;
+            margin-bottom: 1.25rem;
+        }
+        
+        strong {
+            color: var(--primary-dark);
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            padding-left: 2rem;
+            margin-bottom: 1.25rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            font-size: 0.9em;
+            background-color: var(--code-bg);
+            color: var(--code-color);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-family: var(--font-family-monospace);
+        }
+
+        pre {
+            display: block;
+            padding: 1rem;
+            margin: 0 0 1rem;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: var(--shadow);
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        pre code {
+            padding: 0;
+            font-size: inherit;
+            color: inherit;
+            background-color: transparent;
+            border-radius: 0;
+        }
+
+        blockquote {
+            padding: 1rem 1.5rem;
+            margin: 0 0 1.5rem;
+            border-left: 5px solid var(--quote-border);
+            background-color: var(--quote-bg);
+            font-style: italic;
+        }
+
+        #table-of-contents {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem 1rem;
+            overflow-y: auto;
+        }
+        
+        #toc-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 1rem;
+            color: var(--primary-dark);
+        }
+
+        #toc-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        #toc-list li a {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: var(--text-color);
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        #toc-list > li > ul {
+            padding-left: 1.5rem;
+            border-left: 2px solid var(--border-color);
+            margin-left: 0.5rem;
+        }
+
+        #toc-list li a:hover {
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+            text-decoration: none;
+        }
+        
+        #toc-list li a.active {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 700;
+        }
+        #toc-list li ul li a.active {
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+
+        main {
+            padding: 2rem 3rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Procedural Diagram Styles */
+        .diagram-container {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .diagram-title {
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .diagram-flex {
+            display: flex;
+            justify-content: space-around;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+
+        .diagram-stack {
+            display: flex;
+            flex-direction: column-reverse; /* Build from bottom up */
+            align-items: center;
+            width: 45%;
+        }
+        
+        .diagram-stack-k8s {
+             display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .diagram-box {
+            border: 2px solid;
+            padding: 0.75rem 1rem;
+            margin-top: -2px; /* Overlap borders */
+            width: 100%;
+            font-weight: 500;
+            font-size: 0.9rem;
+            position: relative;
+        }
+        
+        .diagram-box span {
+             display: block;
+             font-size: 0.75rem;
+             opacity: 0.7;
+        }
+
+        .vm-stack .diagram-box { border-color: #fd7e14; background-color: #fff3e0; }
+        .container-stack .diagram-box { border-color: #0d6efd; background-color: #cfe2ff; }
+        .infra-box { border-color: #6c757d; background-color: #f8f9fa; }
+        .app-box { border-color: #198754; background-color: #d1e7dd; }
+
+        .k8s-cluster { border: 3px dashed var(--primary-dark); padding: 1rem; border-radius: 8px;}
+        .k8s-control-plane, .k8s-worker-node { border: 2px solid var(--primary-color); background: #fff; padding: 1rem; border-radius: 6px; }
+        .k8s-worker-nodes-container { display: flex; gap: 10px; margin-top: 1rem; }
+        .k8s-component { border: 1px solid var(--border-color); background: #f8f9fa; padding: 0.5rem; margin-top: 0.5rem; border-radius: 4px; }
+
+        .update-diagram { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 1.5rem;
+            align-items: center;
+        }
+        .update-step {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .update-step-label {
+            width: 100px;
+            font-weight: bold;
+            text-align: right;
+        }
+        .pod-container {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .pod {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-size: 0.8rem;
+        }
+        .pod-v1 { background-color: #0d6efd; }
+        .pod-v2 { background-color: #198754; }
+        .pod-terminating { background-color: #dc3545; opacity: 0.6; }
+
+        .intro, .outro {
+            background-color: var(--primary-light);
+            border-left: 5px solid var(--primary-color);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .outro {
+            background-color: #e8f5e9; /* A calm green */
+            border-left-color: #4caf50;
+        }
+
+    </style>
+</head>
+<body>
+
+    <nav id="table-of-contents">
+       <h3 id="toc-title">解説 目次</h3>
+       <ul id="toc-list"></ul>
+    </nav>
+    
+    <main>
+        <div class="intro">
+            <h2 style="margin-top:0;">はじめに：なぜ今、この技術が重要なのか？</h2>
+            <p>こんにちは。これから、あなたの目の前にあるホワイトボードに書かれたキーワードたちを、一つひとつ丁寧に解き明かしていく旅に出ましょう。この旅を終える頃には、「コンテナ」「Kubernetes」「GKE」「GPU」といった言葉が、ただの記号ではなく、現代のITシステムを支える強力な武器として理解できるようになっているはずです。</p>
+            <p>現代のアプリケーション（私たちが日常的に使うスマホアプリやウェブサービスなど）は、一昔前とは比べ物にならないほど複雑になっています。多くのユーザーが同時にアクセスしても快適に動作し、新しい機能が次々と追加され、24時間365日止まることなく動き続けることが求められます。</p>
+            <p>これを実現するために、エンジニアたちは数々の工夫を凝らしてきました。その工夫の歴史の最先端にあるのが、このホワイトボードに書かれた技術群なのです。これらは、単なる個別の技術ではありません。複雑なアプリケーションを、まるでオーケストラの指揮者が多様な楽器をまとめ上げて一つの壮大な交響曲を奏でるように、<strong>効率よく、安定して、柔軟に動かすための「仕組み（エコシステム）」</strong>なのです。</p>
+            <p>この解説書では、以下の章立てで進めていきます。</p>
+        </div>
+
+        <section id="chapter-1">
+            <h1>第1章：土台となる考え方「コンテナ」とは何か？</h1>
+            <p>この章では、すべての基本となる「コンテナ」技術について、その誕生の背景から丁寧に解説します。</p>
+
+            <h2 id="chapter-1-1">1-1. 問題提起：アプリケーション開発の昔と今</h2>
+            <p>まず、コンピュータ上で何かのソフトウェア（アプリケーション）を動かす、というごく当たり前の状況を想像してください。</p>
+            <h3>昔の方法：1台のサーバーに直接インストール</h3>
+            <p>昔は、1台の物理的なコンピューター（サーバー）に、OS（WindowsやLinuxなど）をインストールし、その上に動かしたいアプリケーションを直接インストールしていました。これは、自分のPCにWordやExcelをインストールするのと同じ感覚です。</p>
+            <p>しかし、この方法にはいくつかの大きな問題がありました。</p>
+            <ul>
+                <li><strong>環境の衝突（依存性地獄）：</strong>
+                    <ul>
+                        <li>アプリケーションAは、ライブラリXのバージョン1.0を必要とします。</li>
+                        <li>アプリケーションBは、同じライブラリXのバージョン2.0を必要とします。</li>
+                        <li>この2つのアプリを同じサーバーで動かそうとすると、ライブラリXのバージョンが衝突してしまい、どちらか、あるいは両方が正しく動かなくなってしまいます。これを<strong>「依存性地獄（Dependency Hell）」</strong>と呼びます。</li>
+                    </ul>
+                </li>
+                <li><strong>リソースの無駄：</strong>
+                    <ul>
+                        <li>1台の高性能サーバーがあっても、動かすアプリが1つだけで、そのアプリがCPUやメモリを10%しか使っていなかったら、残りの90%は無駄になってしまいます。非常にもったいない話です。</li>
+                    </ul>
+                </li>
+                <li><strong>環境の再現が難しい：</strong>
+                    <ul>
+                        <li>開発者のPC（Windows）で完璧に動いたアプリが、本番のサーバー（Linux）に持っていくと動かない、ということが頻繁にありました。OSやインストールされているライブラリの微妙な違いが原因です。</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>これらの問題を解決するために、次に登場したのが「仮想マシン」です。</p>
+
+            <h2 id="chapter-1-2">1-2. 解決策その1：「仮想マシン（Virtual Machine, VM）」</h2>
+            <p>ホワイトボードの左側にもVMという図がありますね。これは「仮想マシン」のことです。</p>
+            <p>仮想マシンは、<strong>「物理的なコンピュータの中に、ソフトウェアで作り出したもう一台のコンピュータ」</strong>と考えると分かりやすいです。</p>
+            <ul>
+                <li><strong>仕組み：</strong>物理的なサーバー（ホスト）の上に、「ハイパーバイザー」という特殊なソフトウェアを動かします。このハイパーバイザーが、CPUやメモリといった物理的なリソースを分割し、それぞれの区画を独立したコンピュータ（ゲスト）であるかのように見せかけます。</li>
+                <li><strong>特徴：</strong>各VMは、それぞれ独立した<strong>OS（ゲストOS）</strong>を持ちます。つまり、1台の物理サーバー上で、WindowsのVMとLinuxのVMを同時に動かす、といった芸当が可能です。</li>
+            </ul>
+            <h3>VMのメリット：</h3>
+            <ul>
+                <li><strong>完璧な分離（アイソレーション）：</strong>各VMは完全に独立した世界です。あるVMで何が起きても、他のVMには影響しません。先ほどの「依存性地獄」も、アプリAをVM1に、アプリBをVM2に入れれば、それぞれが必要なライブラリを自由に使えるため、問題は解決します。</li>
+                <li><strong>リソースの有効活用：</strong>1台の物理サーバーのリソースを複数のVMで分け合えるため、以前よりは無駄が少なくなります。</li>
+            </ul>
+            <h3>VMのデメリット：</h3>
+            <ul>
+                <li><strong>重くて遅い：</strong>各VMは、アプリケーション本体だけでなく、OS全体を丸ごと含んでいます。OSは数GB（ギガバイト）のサイズがあり、起動にも数分かかります。たくさんのVMを動かすと、それぞれのOSが消費するCPUやメモリも馬鹿になりません。これをオーバーヘッドが大きいと言います。[medium.com](https://medium.com/@i.vikash/docker-vs-virtual-machines-whats-the-difference-167e0d9963eb)</li>
+                <li><strong>ポータビリティが低い：</strong>VMのイメージ（VM全体をファイル化したもの）は非常に巨大（数GB〜数十GB）なため、別のサーバーに移動させるのが大変です。特に、データセンターからクラウドへ、あるいは異なるクラウドベンダー間での移行は困難を伴います。[docker.com](https://www.docker.com/blog/vm-or-containers/) また、VMインスタンスの数が増えるにつれて、環境の複製も難しくなります。[freecodecamp.org](https://www.freecodecamp.org/news/docker-vs-vm-key-differences-you-should-know)</li>
+            </ul>
+            <p>VMは画期的な技術でしたが、もっと手軽に、もっと速く、もっと効率的にアプリケーションを動かしたい、という要求は高まり続けました。そこで登場したのが「コンテナ」です。</p>
+
+            <h2 id="chapter-1-3">1-3. 解決策その2：「コンテナ（Container）」</h2>
+            <p>いよいよ本丸の「コンテナ」です。ホワイトボードの左上にあるPC（Host）の上にOSがあり、その中にContainerが入っている図が、まさにコンテナの構造を表しています。</p>
+            <p>コンテナは、<strong>「アプリケーションとその実行に必要なもの（ライブラリ、設定ファイルなど）をひとまとめにした、軽量な実行環境」</strong>です。</p>
+            <div id="diagram-vm-container"></div>
+            <h3>コンテナとVMの決定的な違い：</h3>
+            <p>コンテナはホストOSのカーネル（OSの心臓部）を共有します。VMのように、コンテナごとに独立したOSを持つことはしません。これにより、驚くほどのメリットが生まれます。[medium.com](https://medium.com/@tahirbalarabe2/virtual-machines-vs-containers-key-differences-explained-bf67ea797b9f)</p>
+            <ul>
+                <li><strong>軽量：</strong>OSを丸ごと含んでいないため、コンテナのサイズは数MB（メガバイト）〜数百MB程度と非常に小さいです。</li>
+                <li><strong>高速：</strong>OSを起動する必要がないため、コンテナは数秒、時には1秒未満で起動します。オーバーヘッドが最小限であるため、ホストシステムとほぼ同じ速度で動作します。[medium.com](https://medium.com/@i.vikash/docker-vs-virtual-machines-whats-the-difference-167e0d9963eb)</li>
+                <li><strong>高密度：</strong>OSのオーバーヘッドがない分、1台のサーバー上でより多くのコンテナを動かすことができます。</li>
+                <li><strong>高いポータビリティ（可搬性）：</strong>コンテナは「どこでも動く」という思想で作られています。開発者のPCで動いたコンテナは、ほとんどの場合、そのまま本番サーバーでも動きます。これは、アプリケーションの実行に必要なものが全てコンテナ内にパッケージ化されているためです。「私のPCでは動いたんだけどな…」という言い訳が通用しなくなります。コンテナは本質的にポータブルであり、データセンターのVMからクラウドまで、ほとんど修正なしで移行できます。[docker.com](https://www.docker.com/blog/vm-or-containers/)</li>
+            </ul>
+             <p>よく使われる例えが<strong>「船のコンテナ」</strong>です。中身が精密機械であろうと、果物であろうと、同じ形のコンテナに入れてしまえば、同じクレーンで吊り上げ、同じ船で運べます。これと同じように、Webサーバーのアプリケーションであろうと、データ分析のプログラムであろうと、「コンテナ」という標準化された箱に入れてしまえば、どこでも同じように動かせるのです。</p>
+
+             <h2 id="chapter-1-4">1-4. コンテナを扱う技術たち</h2>
+             <p>ホワイトボードにはDocker, Podman, Containerdといった名前が書かれています。これらはコンテナ技術を扱うための具体的なソフトウェアです。</p>
+             <ul>
+                 <li><strong>Docker（ドッカー）:</strong> コンテナ技術を世に広めた、最も有名なソフトウェアです。コンテナの作成、起動、停止、共有などを簡単に行うためのツール一式を提供します。多くの人が「コンテナ＝Docker」と認識しているほど影響力が大きいです。元々はLinux向けに開発されましたが、後に「Docker Desktop for Windows/Mac」が登場し、WindowsやMac上でもLinuxベースのコンテナを簡単に実行できるようになりました。[techworld-with-nana.com](https://www.techworld-with-nana.com/post/docker-vs-virtual-machine)</li>
+                 <li><strong>Containerd（コンテナディー）:</strong> 実は、Dockerの内部で実際にコンテナの起動や管理といった中心的な役割を担っているのがcontainerdというコンポーネントです。元々はDockerの一部でしたが、後に独立し、業界標準のコンテナランタイム（コンテナ実行エンジン）となりました。Kubernetesも現在では主にcontainerdを利用しています。</li>
+                 <li><strong>Podman（ポッドマン）:</strong> Dockerの代替として注目されているツールです。Dockerとほぼ同じコマンドが使えますが、よりセキュリティに配慮した設計になっているなどの特徴があります。</li>
+             </ul>
+             <p>初心者の方は、まず<strong>「Dockerというツールを使うと、コンテナを簡単に作ったり動かしたりできるんだな」</strong>と理解しておけば十分です。</p>
+
+             <h2 id="chapter-1-5">1-5. コンテナの作り方：「Dockerfile」と「Image」</h2>
+             <p>では、どうやって自分だけのコンテナを作るのでしょうか？ここで登場するのがDockerfileとImageです。</p>
+             <ul>
+                <li><strong>Dockerfile（設計図）:</strong>
+                    <ul>
+                        <li>Dockerfileは、コンテナの設計図となるテキストファイルです。</li>
+                        <li>中には、「どのOSイメージを土台にするか」「どのファイルを実行環境にコピーするか」「どのライブラリをインストールするか」「コンテナ起動時にどのコマンドを実行するか」といった指示を、一行ずつ記述します。</li>
+                        <li>例えば、以下のような簡単なDockerfileがあります。
+                            <pre><code class="language-dockerfile"># UbuntuというOSをベースにします
+FROM ubuntu:20.04
+
+# アプリケーションのコードをコンテナ内の/appにコピーします
+COPY ./my-app /app
+
+# アプリケーションの実行に必要なライブラリをインストールします
+RUN apt-get update && apt-get install -y python3
+
+# コンテナが起動したときに、このコマンドを実行します
+CMD ["python3", "/app/main.py"]</code></pre>
+                        </li>
+                    </ul>
+                </li>
+                <li><strong>Image（イメージ、鋳型）:</strong>
+                    <ul>
+                        <li>このDockerfile（設計図）を元に、<code>docker build</code>というコマンドを実行すると、<strong>「コンテナイメージ（Image）」</strong>が作成されます。</li>
+                        <li>イメージは、アプリケーションとその実行環境が固まった<strong>「鋳型」や「テンプレート」</strong>のようなものです。読み取り専用で、これ自体は動きません。</li>
+                        <li>このイメージさえあれば、誰でも、どこでも、同じ環境を再現できます。</li>
+                    </ul>
+                </li>
+                <li><strong>Container（コンテナ、実体）:</strong>
+                    <ul>
+                        <li>最後に、作成したイメージ（鋳型）から、<code>docker run</code>というコマンドを使って<strong>「コンテナ（実体）」</strong>を起動します。</li>
+                        <li>一つのイメージから、何個でも同じコンテナを起動することができます。まるでたい焼きの型（イメージ）から、たくさんのたい焼き（コンテナ）を焼くようなものです。</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>この<strong>Dockerfile → Image → Container</strong>という流れは、コンテナ開発の基本中の基本なので、ぜひ覚えておいてください。</p>
+        </section>
+
+        <section id="chapter-2">
+            <h1>第2章：たくさんのコンテナを操る「オーケストレーション」</h1>
+            <p>コンテナ技術によって、アプリケーションを軽量かつポータブルな形でパッケージ化できるようになりました。しかし、話はここで終わりません。</p>
+            <p>ホワイトボードの<code>User -> web -> back -> DB</code>という図を見てください。これは、現代のWebサービスで非常によく見られる「3層アーキテクチャ」と呼ばれる構成です。</p>
+            <ul>
+                <li><strong>Web/Front:</strong> ユーザーが直接触れる画面（フロントエンド）を担当するコンテナ。</li>
+                <li><strong>Back:</strong> ビジネスロジックや複雑な計算（バックエンド）を担当するコンテナ。</li>
+                <li><strong>DB:</strong> データを保存するデータベース。</li>
+             </ul>
+            <p>これだけでも複数のコンテナが必要です。さらに、人気サービスになってアクセスが増えたらどうでしょう？Webサーバーのコンテナを1つから10個、100個に増やしたくなります。</p>
+            <p>ここで、新たな問題が山積みになります。</p>
+            <ul>
+                <li>たくさんのコンテナをどうやって起動・停止する？ 100個のコンテナを手作業で一つひとつ起動するのは悪夢です。</li>
+                <li>コンテナが故障したら？ あるコンテナが突然エラーで停止してしまったら、誰がそれを検知して再起動するのでしょうか？</li>
+                <li>負荷分散はどうする？ 100個のWebサーバーコンテナに、ユーザーからのアクセスをどうやって均等に振り分けるのでしょうか？</li>
+                <li>アップデートはどうする？ サービスを止めずに、新しいバージョンのアプリケーションにどうやって入れ替えるのでしょうか？</li>
+                <li>どのサーバーに配置する？ 複数の物理サーバーがある場合、どのサーバーにどのコンテナを配置すれば効率的でしょうか？</li>
+            </ul>
+            <p>これらの面倒な管理作業を、すべて自動でやってくれる仕組みが<strong>「コンテナオーケストレーション」</strong>です。オーケストラの指揮者（Orchestra Conductor）が、たくさんの演奏者を指揮して美しい音楽を奏でるように、たくさんのコンテナをうまく協調させて一つの大きなサービスとして動かすのです。</p>
+            <p>そして、そのコンテナオーケストレーションツールの<strong>事実上の世界標準（デファクトスタンダード）</strong>となっているのが、<strong>Kubernetes（クバネティス、またはクーベネティス）</strong>です。</p>
+
+            <h2 id="chapter-2-1">2-1. Kubernetesの誕生：Googleの巨人たちの肩の上で</h2>
+            <p>ホワイトボードのKubernetesについての横に、Borg, Omegaと書かれていますね。（"Gate"と書かれているように見えますが、文脈からOmegaの可能性が高いです）。これらはKubernetesの祖先にあたる、Google社内で使われていた伝説的なシステムです。</p>
+            <ul>
+                <li><strong>Borg（ボーグ）:</strong> Googleは、検索エンジンやGmailなど、地球規模の巨大なサービスを動かすために、早くからコンテナ技術（当時はGoogle独自の技術）を利用していました。Borgは、その何十万、何百万というコンテナを管理するために作られた、社内向けのオーケストレーションシステムです。</li>
+                <li><strong>Omega（オメガ）:</strong> Borgの次世代機として開発されたシステムです。</li>
+            </ul>
+            <p>Kubernetesは、このBorgとOmegaの開発・運用で培われた長年の経験と知見を元に、オープンソース（誰でも自由に使えるソフトウェア）として2014年に公開されました。いわば、巨大ITサービスの運用ノウハウの結晶なのです。だからこそ、これほどまでに強力で、多くの企業に採用されているのです。</p>
+            <p>Kubernetesはギリシャ語で「航海長」や「操舵手」を意味します。コンテナという船をたくさん率いて、デジタルの大海原を航海する船団のリーダー、というイメージです。ロゴが船の舵になっているのもそのためです。しばしばK8sと略されます（Kとsの間に8文字あるため）。</p>
+        </section>
+
+        <section id="chapter-3">
+            <h1>第3章：Kubernetesの心臓部と手足</h1>
+            <p>さて、いよいよKubernetesの内部構造を見ていきましょう。Kubernetesは、たくさんのサーバーを束ねて、一つの巨大なコンピュータのように見せるシステムです。このサーバー群全体を<strong>「クラスター」</strong>と呼びます。</p>
+            <p>クラスターは、大きく分けて2つの役割を持つノード（サーバーのこと）から構成されます。ホワイトボードの右側にあるControl PlaneとWorkerの図が、まさにこれを表しています。</p>
+            <div id="diagram-k8s-arch"></div>
+
+            <h2 id="chapter-3-1">3-1. コントロールプレーン（Control Plane）：クラスターの司令塔</h2>
+            <p>コントロールプレーンは、クラスター全体の脳であり、司令塔です。クラスター全体の状態を管理し、様々な指示をワーカーノードに送ります。ユーザーが「コンテナを5個起動して」と命令すると、それを受け取るのもコントロールプレーンです。</p>
+            <p>コントロールプレーンは、いくつかの重要なコンポーネントで構成されています。</p>
+            <ul>
+                <li><strong>API Server (kube-api-server):</strong> コントロールプレーンの唯一の窓口です。ユーザー、ワーカーノード、その他のコンポーネントからのすべてのリクエストは、まずAPIサーバーが受け取ります。外部との通信を司る、クラスターの玄関のような存在です。</li>
+                <li><strong>etcd (エトセディー):</strong> クラスターのすべての設定情報や状態を保存するデータベースです。「今、どのコンテナが、どのワーカーノードで、何個動いているか」といった情報がすべてここに記録されています。クラスターの記憶装置であり、非常に重要なコンポーネントです。</li>
+                <li><strong>Scheduler (kube-scheduler):</strong> 新しくコンテナ（正確には後述するPod）を起動する際に、「どのワーカーノードに配置するのが最適か？」を決定する役割を担います。CPUやメモリの空き状況など、各ワーカーノードの状態を監視し、最適な配置先を判断する、配車係のような存在です。</li>
+                <li><strong>Controller Manager (kube-controller-manager):</strong> クラスターの状態を常に監視し、「あるべき姿」と「現在の姿」を一致させるために働き続ける、勤勉な執事です。例えば、「コンテナは常に5個動いている状態（あるべき姿）」と設定したのに、何らかの理由で1個停止して4個になってしまった（現在の姿）場合、コントローラーマネージャーがそれを検知し、自動的に新しいコンテナを1個起動して5個に戻します。この自己修復（セルフヒーリング）機能は、Kubernetesの最も強力な特徴の一つです。</li>
+            </ul>
+
+            <h2 id="chapter-3-2">3-2. ワーカーノード（Worker Nodes）：コンテナが実際に動く場所</h2>
+            <p>ワーカーノードは、実際にアプリケーションコンテナを動かす作業員です。コントロールプレーンからの指示に従って、コンテナを起動したり、停止したり、監視したりします。通常、クラスターには複数のワーカーノードが存在します。</p>
+            <p>ワーカーノードにも、重要なコンポーネントが動いています。</p>
+            <ul>
+                <li><strong>Kubelet (キューブレット):</strong> 各ワーカーノードに常駐し、コントロールプレーンからの指示を受け取るエージェントです。「このコンテナを起動せよ」というAPIサーバーからの指示を受け取り、実際にコンテナを起動するのがKubeletの仕事です。また、コンテナが正常に動いているかを監視し、その状態をコントロールプレーンに報告する役割も担います。</li>
+                <li><strong>Container Runtime (コンテナランタイム):</strong> Kubeletから指示を受けて、実際にコンテナを動かすソフトウェアです。第1章で説明したcontainerdなどがこれにあたります。</li>
+                <li><strong>Kube-proxy (キューブプロキシ):</strong> クラスター内のネットワークを管理するコンポーネントです。コンテナ同士が通信したり、外部からコンテナにアクセスしたりするための、複雑なネットワーク設定を各ノード上で実現してくれます。</li>
+            </ul>
+            <blockquote>
+              <strong>まとめると：</strong><br>
+              ユーザーはコントロールプレーンに「こういうアプリを、これくらいの数で動かしたい」とお願いする。<br>
+              コントロールプレーンは、そのお願いを元に、どのワーカーノードでコンテナを動かすかを決定し、指示を出す。<br>
+              ワーカーノードは、指示に従ってコンテナを起動し、動かし続ける。問題が起きれば、コントロールプレーンに報告し、コントロールプレーンがよしなに（いい感じに）修正してくれる。<br>
+              この司令塔と作業員の見事な連携によって、私たちは個々のサーバーやコンテナの細かいことを気にせず、「クラスター全体としてアプリケーションを動かす」ことだけに集中できるのです。
+            </blockquote>
+        </section>
+
+        <section id="chapter-4">
+            <h1>第4章：Kubernetesを構成する重要な部品たち</h1>
+            <p>Kubernetesの世界では、ユーザーは直接コンテナを操作することはあまりありません。代わりに、<strong>「Pod」「Deployment」「Service」といった、Kubernetesが定義する「オブジェクト（リソース）」</strong>という単位で、"あるべき姿"を定義します。</p>
+            <p>ホワイトボードの右側にリストアップされているのが、まさにこれらのオブジェクトです。一つずつ見ていきましょう。</p>
+
+            <h2 id="chapter-4-1">4-1. Pod（ポッド）：コンテナを入れるカプセル</h2>
+            <ul>
+                <li>Podは、Kubernetesがデプロイ（配置）できる最小単位です。</li>
+                <li>Podは、1つまたは複数のコンテナを中に含むことができる、カプセルのようなものです。</li>
+                <li>通常は、1つのPodに1つのコンテナを入れるのが一般的です。</li>
+                <li>なぜコンテナを直接扱わず、Podという一段階上の抽象化があるのか？それは、密接に関連するコンテナ群をひとまとめに扱うためです。例えば、メインのアプリケーションコンテナと、そのログを収集する補助的なコンテナを、同じPodに入れることがあります。同じPod内のコンテナは、ネットワークやストレージを共有できるため、連携が容易になります。</li>
+            </ul>
+            <p><strong>重要な特性:</strong> Podは<strong>短命（ephemeral）</strong>です。つまり、いつかは消えてしまう運命にあります。ノードの障害などでPodが停止した場合、同じPodが復活するのではなく、新しいPodが別の場所に作られます。そのため、Podに直接アクセスするような設計は避けるべきです。</p>
+
+            <h2 id="chapter-4-2">4-2. ReplicaSet（レプリカセット）：Podの数を保証する</h2>
+            <ul>
+                <li>ReplicaSetは、指定された数のPodのレプリカ（複製）が常に実行されていることを保証します。</li>
+                <li>例えば、「このPodを常に3つ動かしておきたい」とReplicaSetに設定します。</li>
+                <li>もし何らかの理由でPodが1つ停止して2つになってしまったら、ReplicaSetがそれを検知し、自動的に新しいPodを1つ起動して3つに戻してくれます。</li>
+                <li>逆に、手違いで4つ目が起動してしまったら、1つを停止して3つに戻します。</li>
+                <li>このように、<strong>Podの数を維持（自己修復）</strong>してくれるのがReplicaSetの役割です。</li>
+            </ul>
+
+            <h2 id="chapter-4-3">4-3. Deployment（デプロイメント）：アプリのリリースを賢く管理</h2>
+            <p>ホワイトボードでは、ReplicaSetからDeploymentへ矢印が伸びていますね。これは非常に重要な関係を示しています。</p>
+            <ul>
+                <li>Deploymentは、ReplicaSetをさらに賢く管理するための仕組みです。 ほとんどの場合、私たちはReplicaSetを直接操作するのではなく、このDeploymentを操作します。</li>
+                <li>Deploymentの最大の役割は、アプリケーションのアップデート（リリース）を安全に行うことです。</li>
+            </ul>
+            <p>例えば、バージョン1のアプリ（青色）が3つのPodで動いているとします。ここにバージョン2のアプリ（緑色）をリリースしたい場合、Deploymentは以下のような<strong>「ローリングアップデート」</strong>を自動で行ってくれます。</p>
+            <div id="diagram-rolling-update"></div>
+            <p>この方法なら、サービス全体を一度も停止することなく、安全にアップデートができます。もし新しいバージョンに問題があれば、すぐに元のバージョンに戻す（ロールバック）ことも簡単です。</p>
+            <p>ホワイトボードの①リリースと定義 - IaC、②Pod ... Containerで構成されているという記述は、まさにこのDeploymentの振る舞いを指しています。IaCはInfrastructure as Codeの略で、インフラの構成をコード（設定ファイル）で管理する考え方です。Deploymentの設定をファイルに書いておけば、誰がやっても同じようにアプリをデプロイできる、ということです。</p>
+
+            <h2 id="chapter-4-4">4-4. Service（サービス）：Podへの安定した窓口</h2>
+            <p>前述の通り、Podはいつ消えてもおかしくない存在で、再作成されるとIPアドレスも変わってしまいます。では、webコンテナからbackコンテナにアクセスしたい場合、どうすればよいでしょうか？backのPodのIPアドレスがコロコロ変わっては、通信できません。</p>
+            <ul>
+                <li>Serviceは、複数のPodに対して、単一の安定したアクセスポイント（窓口）を提供します。</li>
+                <li>Serviceは、自分自身の固定された名前とIPアドレスを持ちます。</li>
+                <li>「このラベルが付いたPodたちをまとめる」という設定をしておくと、ServiceはそのPodたちを自動で見つけ出し、アクセスを適切に振り分けてくれます（負荷分散、ロードバランシング）。</li>
+                <li>webコンテナは、backのPodのIPアドレスを知らなくても、<code>back-service</code>という固定の名前でアクセスすれば、Serviceがよしなに動いているback Podのどれか一つに繋いでくれます。</li>
+            </ul>
+            <p>これにより、Podが裏で増えたり減ったり、入れ替わったりしても、アプリケーション間の通信は途絶えることなく継続できるのです。</p>
+
+            <h2 id="chapter-4-5">4-5. Job と DaemonSet</h2>
+            <p>リストの最後にあった2つも見ておきましょう。</p>
+            <ul>
+                <li><strong>Job（ジョブ）:</strong>
+                    <ul>
+                        <li>Deploymentは、サービスのように<strong>「動き続ける」</strong>アプリケーションのためのものでした。</li>
+                        <li>一方、Jobは、<strong>「実行が完了したら終了する」</strong>タスクのためのものです。</li>
+                        <li>例えば、「夜間に一度だけ、データベースのバックアップを取る」「大量のデータを一括で処理する」といったバッチ処理に使われます。</li>
+                    </ul>
+                </li>
+                <li><strong>DaemonSet（デーモンセット）:</strong>
+                    <ul>
+                        <li>クラスター内の全ての（あるいは特定の）ワーカーノードに、必ず1つずつ同じPodを配置することを保証します。</li>
+                        <li>各ノードのログを収集するエージェントや、パフォーマンスを監視するエージェントなど、全てのノードで動いていてほしい補助的なプログラムを配置するのに使われます。</li>
+                    </ul>
+                </li>
+            </ul>
+        </section>
+
+        <section id="chapter-5">
+            <h1>第5章：実践的な応用と高度なトピック</h1>
+            <p>基礎的な部品を学んだところで、いよいよホワイトボードに書かれている、より実践的で高度なトピックに挑戦しましょう。</p>
+
+            <h2 id="chapter-5-1">5-1. GKE：Googleにお任せするKubernetes</h2>
+            <p>ホワイトボードにはGKE standard、GKE Autopilotという言葉があります。GKEは <strong>Google Kubernetes Engine</strong> の略です。</p>
+            <p>Kubernetesは非常に強力ですが、その司令塔であるコントロールプレーンを自分たちで構築し、維持管理（アップデート、セキュリティ対策、故障対応など）するのは、かなりの専門知識と手間が必要です。</p>
+            <p>そこで、クラウドサービス提供会社（Google, Amazon, Microsoftなど）は、「コントロールプレーンの面倒な管理は、全部我々がやりますよ。あなたたちはワーカーノードとアプリケーションのことだけ考えてください」というサービスを提供しています。これが<strong>マネージドKubernetesサービス</strong>です。</p>
+            <p>GKEは、Google Cloudが提供する、このマネージドKubernetesサービスです。GKEを使うことで、ユーザーは数クリックで高機能なKubernetesクラスターを立ち上げることができます。</p>
+            <p>ホワイトボードには、GKEの2つのモードが書かれています。</p>
+            <ul>
+                <li><strong>GKE Standard:</strong>
+                    <ul>
+                        <li>コントロールプレーンはGoogleが管理してくれますが、ワーカーノードはユーザーが管理します。</li>
+                        <li>「CPUがこれくらいで、メモリがこれくらいのサーバーを、3台使いたい」といったように、ワーカーノードのスペックや台数を自分で決める必要があります。</li>
+                        <li>自由度が高い反面、ノードの管理（OSのアップデートなど）や、どのくらいの規模のノードを用意すべきかというサイジングの責任はユーザー側にあります。</li>
+                    </ul>
+                </li>
+                <li><strong>GKE Autopilot:</strong>
+                    <ul>
+                        <li>コントロールプレーンだけでなく、ワーカーノードの管理も全てGoogleにお任せするモードです。</li>
+                        <li>ユーザーはノードのスペックや台数を一切気にする必要がありません。ただ「こういうPodを動かしたい」と定義するだけで、GKEが必要なリソースを自動的に用意し、Podを動かしてくれます。</li>
+                        <li>料金も、ノード単位ではなく、実際にPodが使用したCPUやメモリの量に対してのみ発生します。</li>
+                        <li>運用負荷が劇的に下がる反面、Standardモードに比べると設定の自由度は少し下がります。</li>
+                    </ul>
+                </li>
+            </ul>
+            <p><code>GKE Autopilot 課金</code>というメモは、この料金体系の特徴を指しているのでしょう。初心者や、インフラ管理の手間を極力減らしたい場合には、Autopilotが非常に強力な選択肢となります。</p>
+
+            <h2 id="chapter-5-2">5-2. HPA：需要に応じた自動スケーリング</h2>
+            <p>HPAは <strong>Horizontal Pod Autoscaler</strong> の略です。これは、Kubernetesの非常に強力な機能の一つです。</p>
+            <p>ホワイトボードには <code>HPA -> x100 -> D D D...</code> のような図があります。これはD（おそらくDeployment）で管理されているPodが、HPAによって100倍（は極端ですが）にスケールする様子を描いています。</p>
+            <ul>
+                <li>HPAは、Podの負荷（例：CPU使用率）を監視し、自動的にPodの数を増減させます。</li>
+                <li><strong>仕組み:</strong>
+                    <ol>
+                        <li>まず、「CPU使用率が平均50%を超えたらPodを増やす。10%を下回ったら減らす」といったルールを設定します。</li>
+                        <li>HPAは、Deploymentが管理するPodたちのCPU使用率を常に監視します。</li>
+                        <li>サービスのアクセスが急増し、CPU使用率が50%を超えたとします。</li>
+                        <li>HPAはこれを検知し、Deploymentに対して「Podの数を増やせ」と命令します。例えば、3個から5個に増やします。</li>
+                        <li>Podが増えたことで、1つあたりの負荷が下がり、CPU使用率は50%以下に落ち着きます。</li>
+                        <li>逆に、深夜になってアクセスが減り、CPU使用率が10%を下回ると、HPAは「Podの数を減らせ」と命令し、リソースの無駄遣いを防ぎます。</li>
+                    </ol>
+                </li>
+            </ul>
+            <p>これにより、手作業でPodの数を調整することなく、需要の波に自動で追従できる、伸縮自在なシステムを構築できます。これはコスト効率と安定性の両面で非常に大きなメリットです。</p>
+
+            <h2 id="chapter-5-3">5-3. AI時代の必須技術：KubernetesでGPUを使う</h2>
+            <p>いよいよ最後の、そして最も高度なトピック「GPU」です。ホワイトボードの右側で、GPUの共有方法について多くの議論がなされています。</p>
+            <p><strong>GPU（Graphics Processing Unit）</strong>は、元々はコンピュータの画像処理を担当する部品でした。しかし、その単純な計算を並列で大量にこなす能力が、AIの機械学習（特にディープラーニング）における膨大な行列計算に最適であることが分かり、今やAI開発に不可欠な存在となっています。</p>
+            <p>しかし、GPUは非常に高価です。1台の高性能GPUを、1つのコンテナだけで独占してしまうのは非常にもったいない。そこで、<strong>「1台のGPUを、どうやって複数のコンテナで効率よく共有するか？」</strong>という課題が生まれます。<code>GPU共有のやり方？</code>というホワイトボードのメモは、まさにこの問題意識を表しています。</p>
+            <p>KubernetesでGPUを共有するには、主に2つの方法があります。</p>
+            <h3>方法1：NVIDIA MIG (Multi-Instance GPU)</h3>
+            <p><code>GPU MIG HELLO!</code>というメモがありますね。MIGは、NVIDIA社が提供する、比較的新しい世代の高性能GPUに搭載されている画期的な機能です。</p>
+            <ul>
+                <li>MIGは、1つの物理的なGPUを、ハードウェアレベルで最大7つの独立した「ミニGPU」に分割します。</li>
+                <li>分割された各インスタンスは、それぞれが専用の演算エンジン、メモリ、キャッシュを持ち、完全に分離されています。</li>
+                <li>Kubernetesからは、これらがまるで7つの別々のGPUがあるかのように見えます。</li>
+                <li><strong>メリット:</strong>
+                    <ul>
+                        <li><strong>完全な分離（アイソレーション）:</strong> あるインスタンスで重い処理が動いても、他のインスタンスのパフォーマンスに影響を与えません。性能が保証されます。</li>
+                        <li><strong>セキュリティ:</strong> ハードウェアレベルで分離されているため、安全です。</li>
+                    </ul>
+                </li>
+                <li><strong>デメリット:</strong>
+                    <ul>
+                        <li>対応している高価なGPU（NVIDIA A100など）が必要です。</li>
+                        <li>分割の仕方は固定されており、動的に変更することはできません。</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>MIGは、複数の異なるAIモデルを同時に、安定した性能で動かしたい場合などに非常に有効な方法です。</p>
+            <h3>方法2：タイムスライシング (Time-Slicing / Time-Sharing)</h3>
+            <p><code>TimeScale Sharing?</code> (おそらくTime-Slice Sharing) というメモがこれに該当します。</p>
+            <ul>
+                <li>タイムスライシングは、1つのGPUを、複数のコンテナが非常に短い時間で交互に利用する技術です。</li>
+                <li>人間の目には同時に使っているように見えますが、実際にはGPUの利用権をコンマ秒単位で切り替えながら共有しています。</li>
+                <li>これは、NVIDIAのGPUドライバが提供するソフトウェア的な機能です。</li>
+                <li><strong>メリット:</strong>
+                    <ul>
+                        <li>MIGに対応していない、より多くの種類のGPUで利用できます。</li>
+                        <li>GPUを細かく分割して、多くのコンテナで共有できます。開発環境や、推論（学習済みモデルの利用）のように常にGPUを100%使うわけではない用途に向いています。</li>
+                    </ul>
+                </li>
+                <li><strong>デメリット:</strong>
+                    <ul>
+                        <li><strong>性能の保証がない:</strong> あるコンテナがGPUを占有すると、他のコンテナの処理が待たされてしまう（パフォーマンスのジッターが発生する）可能性があります。</li>
+                        <li>分離がソフトウェアレベルなので、MIGほどの厳密な分離はできません。</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h2 id="chapter-5-4">5-4. さらなる進化：DRA (Dynamic Resource Allocation)</h2>
+            <p>ホワイトボードにはDRAという言葉も見られます。これは <strong>Dynamic Resource Allocation（動的リソース割り当て）</strong> の略で、Kubernetesの比較的新しい、先進的な機能です。</p>
+            <p>従来のKubernetesでは、「GPUが1つ欲しい」という形でしかリソースを要求できませんでした。しかし、DRAを使うと、もっと柔軟なリソース要求が可能になります。</p>
+            <ul>
+                <li>「NVIDIA A100 GPUの、MIGインスタンスが1つ欲しい」</li>
+                <li>「GPUのメモリが10GB以上あるものが欲しい」</li>
+                <li>「特定のメーカーのFPGA（特殊な集積回路）が欲しい」</li>
+            </ul>
+            <p>このように、GPUに限らず、様々な特殊なハードウェア（リソース）を、より細かく、より動的にコンテナに割り当てることができるようになります。<code>mem 256GB</code>や<code>images 10-5000</code>、<code>models H800-B5</code>といったメモは、こういった具体的なリソース要求の例を考えていたのかもしれません。DRAは、ますます多様化・複雑化するハードウェアをKubernetes上で効率的に扱うための、未来に向けた重要な一歩と言えるでしょう。</p>
+        </section>
+
+
+        <div class="outro">
+            <h2 style="margin-top:0;">おわりに：旅の終わりと、新たな始まり</h2>
+            <p>ここまで、一枚のホワイトボードを道しるべに、コンテナから始まり、Kubernetesの基本構造、主要な部品、そしてGKEやGPU利用といった高度な応用まで、長い旅をしてきました。</p>
+            <p>もう一度、全体の流れを振り返ってみましょう。</p>
+            <ul>
+                <li>アプリケーションの実行環境を標準化し、どこでも動くようにする<strong>「コンテナ」</strong>技術が生まれた。(Docker, Image)</li>
+                <li>たくさんのコンテナを自動で管理・運用するために、オーケストレーションツールである<strong>「Kubernetes」</strong>が登場した。(Borgの知見)</li>
+                <li>Kubernetesは、司令塔の<strong>「コントロールプレーン」と、作業員の「ワーカーノード」</strong>で構成されるクラスターを形成する。</li>
+                <li>私たちは<strong>「Pod」「Deployment」「Service」</strong>といったオブジェクトを定義することで、アプリケーションのあるべき姿をKubernetesに伝える。</li>
+                <li>Kubernetesは、自己修復やローリングアップデートといった機能で、アプリケーションを安定稼働させ続ける。</li>
+                <li>GKEのようなマネージドサービスを使えば、Kubernetesの導入と運用が劇的に簡単になる。(Standard vs Autopilot)</li>
+                <li>HPAを使えば、需要に応じて自動でスケールする伸縮自在なシステムが作れる。</li>
+                <li>AI時代に不可欠なGPUも、MIGやタイムスライシングといった技術で、複数のコンテナで効率的に共有できる。</li>
+            </ul>
+            <p>ホワイトボードに殴り書きされたキーワードの群れが、今や一つの壮大な物語として繋がって見えているのではないでしょうか。</p>
+            <p>これらの技術は、一つひとつが奥深く、専門家になるにはさらなる学習が必要です。しかし、この解説書で得た知識は、あなたが今後、より専門的なドキュメントを読んだり、実際にKubernetesを触ってみたりする上で、非常に強力な土台となるはずです。</p>
+            <p>現代のITシステムは、これらの技術の肩の上に成り立っています。この知識は、あなたがエンジニアとして、あるいはIT技術に関わるビジネスパーソンとして、次のステップへ進むための羅針盤となるでしょう。</p>
+            <p>この長い旅にお付き合いいただき、ありがとうございました。あなたの新たな学びの始まりを、心から応援しています。</p>
+        </div>
+    </main>
+
+    <script type="module">
+        import hljs from 'highlight.js';
+        import dockerfile from 'dockerfile';
+
+        // --- SYNTAX HIGHLIGHTING ---
+        hljs.registerLanguage('dockerfile', dockerfile);
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+        });
+
+        // --- DYNAMIC TABLE OF CONTENTS ---
+        const tocList = document.getElementById('toc-list');
+        const mainContent = document.querySelector('main');
+        const headings = mainContent.querySelectorAll('h1, h2');
+        let currentChapterList;
+
+        headings.forEach(heading => {
+            const level = parseInt(heading.tagName.substring(1), 10);
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+
+            a.textContent = heading.textContent;
+            a.href = `#${heading.id}`;
+            li.appendChild(a);
+
+            if (level === 1) {
+                tocList.appendChild(li);
+                currentChapterList = document.createElement('ul');
+                li.appendChild(currentChapterList);
+            } else if (level === 2 && currentChapterList) {
+                currentChapterList.appendChild(li);
+            }
+        });
+        
+        // --- SCROLLSPY for ToC ---
+        const tocLinks = document.querySelectorAll('#toc-list a');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const id = entry.target.getAttribute('id');
+                const link = document.querySelector(`#toc-list a[href="#${id}"]`);
+                if (link) {
+                     if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+                        document.querySelectorAll('#toc-list a.active').forEach(active => active.classList.remove('active'));
+                        link.classList.add('active');
+                    }
+                }
+            });
+        }, { rootMargin: "0px 0px -50% 0px", threshold: 0.5 });
+
+        headings.forEach(heading => {
+            observer.observe(heading);
+        });
+        
+        // Smooth scrolling for ToC links
+        tocLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelector(link.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // --- PROCEDURAL DIAGRAM GENERATION ---
+        
+        function createVmVsContainerDiagram() {
+            const container = document.getElementById('diagram-vm-container');
+            if (!container) return;
+            
+            container.className = 'diagram-container';
+            container.innerHTML = `
+                <div class="diagram-title">仮想マシン (VM) vs コンテナ</div>
+                <div class="diagram-flex">
+                    <div class="diagram-stack vm-stack">
+                        <div class="diagram-box app-box">アプリケーション</div>
+                        <div class="diagram-box app-box">ライブラリ/依存関係</div>
+                        <div class="diagram-box vm-stack">ゲストOS</div>
+                        <div class="diagram-box vm-stack">ハイパーバイザー</div>
+                        <div class="diagram-box infra-box">ホストOS</div>
+                        <div class="diagram-box infra-box">物理サーバー (ハードウェア)</div>
+                    </div>
+                    <div class="diagram-stack container-stack">
+                        <div class="diagram-box app-box">アプリケーション</div>
+                        <div class="diagram-box app-box">ライブラリ/依存関係</div>
+                        <div class="diagram-box container-stack">コンテナエンジン<br>(Docker等)</div>
+                        <div class="diagram-box infra-box">ホストOS<br>(カーネル共有)</div>
+                        <div class="diagram-box infra-box">物理サーバー (ハードウェア)</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createK8sArchitectureDiagram() {
+            const container = document.getElementById('diagram-k8s-arch');
+            if (!container) return;
+
+            container.className = 'diagram-container';
+            container.innerHTML = `
+                <div class="diagram-title">Kubernetes クラスターの構造</div>
+                <div class="k8s-cluster">
+                    <div class="diagram-stack-k8s">
+                        <div class="k8s-control-plane">
+                            <strong>コントロールプレーン (司令塔)</strong>
+                            <div class="k8s-component">API Server</div>
+                            <div class="k8s-component">etcd</div>
+                            <div class="k8s-component">Scheduler</div>
+                            <div class="k8s-component">Controller Manager</div>
+                        </div>
+                        <div class="k8s-worker-nodes-container">
+                            <div class="k8s-worker-node">
+                                <strong>ワーカーノード 1</strong>
+                                <div class="k8s-component">Kubelet</div>
+                                <div class="k8s-component">Container Runtime</div>
+                                <div class="k8s-component" style="background: #d1e7dd;">Pod (コンテナ)</div>
+                            </div>
+                            <div class="k8s-worker-node">
+                                <strong>ワーカーノード 2</strong>
+                                <div class="k8s-component">Kubelet</div>
+                                <div class="k8s-component">Container Runtime</div>
+                                <div class="k8s-component" style="background: #d1e7dd;">Pod (コンテナ)</div>
+                            </div>
+                            <div class="k8s-worker-node" style="opacity:0.7">
+                                <strong>... 多数のノード</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createRollingUpdateDiagram() {
+            const container = document.getElementById('diagram-rolling-update');
+            if (!container) return;
+            
+             container.className = 'diagram-container update-diagram';
+             container.innerHTML = `
+                <div class="diagram-title">Deploymentによるローリングアップデート</div>
+                <div class="update-step">
+                    <div class="update-step-label">開始時</div>
+                    <div class="pod-container">
+                        <div class="pod pod-v1">v1</div><div class="pod pod-v1">v1</div><div class="pod pod-v1">v1</div>
+                    </div>
+                </div>
+                <div class="update-step">
+                    <div class="update-step-label">ステップ 1</div>
+                    <div class="pod-container">
+                        <div class="pod pod-v1">v1</div><div class="pod pod-v1">v1</div><div class="pod pod-v1 terminating">v1</div><div class="pod pod-v2">v2</div>
+                    </div>
+                </div>
+                <div class="update-step">
+                    <div class="update-step-label">ステップ 2</div>
+                    <div class="pod-container">
+                        <div class="pod pod-v1">v1</div><div class="pod pod-v1 terminating">v1</div><div class="pod pod-v2">v2</div><div class="pod pod-v2">v2</div>
+                    </div>
+                </div>
+                <div class="update-step">
+                     <div class="update-step-label">ステップ 3</div>
+                    <div class="pod-container">
+                        <div class="pod pod-v1 terminating">v1</div><div class="pod pod-v2">v2</div><div class="pod pod-v2">v2</div><div class="pod pod-v2">v2</div>
+                    </div>
+                </div>
+                <div class="update-step">
+                    <div class="update-step-label">完了</div>
+                    <div class="pod-container">
+                        <div class="pod pod-v2">v2</div><div class="pod pod-v2">v2</div><div class="pod pod-v2">v2</div>
+                    </div>
+                </div>
+             `;
+        }
+        
+        // Generate all diagrams on load
+        createVmVsContainerDiagram();
+        createK8sArchitectureDiagram();
+        createRollingUpdateDiagram();
+
+    </script>
+</body>
+</html>
