@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes & コンテナ技術 習熟度クイズ</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+    
+    <script type="importmap">
+    {
+        "imports": {}
+    }
+    </script>
+    
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --container-bg: #ffffff;
+            --text-color: #333;
+            --primary-color: #326de6; /* Google Cloud-like blue */
+            --primary-hover: #2856b8;
+            --correct-color: #1e8e3e; /* Google Cloud-like green */
+            --correct-bg: #e6f4ea;
+            --incorrect-color: #d93025; /* Google Cloud-like red */
+            --incorrect-bg: #fce8e6;
+            --border-color: #dadce0;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--container-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            margin: 2rem 0;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1.5rem 2rem;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.75rem;
+        }
+
+        header p {
+            margin: 0.5rem 0 0;
+            opacity: 0.9;
+        }
+
+        #quiz-container {
+            padding: 2rem;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Screens Styling */
+        #start-screen, #result-screen {
+            text-align: center;
+        }
+
+        #start-screen h2, #result-screen h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        #start-screen p, #result-screen p {
+            line-height: 1.6;
+            color: #5f6368;
+        }
+
+        #result-screen #score-text {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 1rem 0;
+        }
+        
+        #result-screen #score-message {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Quiz Screen Styling */
+        #quiz-header {
+            margin-bottom: 1.5rem;
+        }
+
+        #progress-text {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #5f6368;
+            text-align: right;
+            margin-bottom: 0.5rem;
+        }
+
+        #progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary-color);
+            transition: width 0.3s ease-in-out;
+        }
+        
+        #question {
+            font-size: 1.5rem;
+            line-height: 1.4;
+            margin-bottom: 2rem;
+        }
+
+        #options-container {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            font-size: 1rem;
+            text-align: left;
+            background-color: var(--container-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        
+        .option-btn:hover:not(:disabled) {
+            background-color: #f8f9fa;
+            border-color: var(--primary-color);
+        }
+
+        .option-btn.correct {
+            background-color: var(--correct-bg);
+            border-color: var(--correct-color);
+            color: var(--correct-color);
+            font-weight: bold;
+        }
+        
+        .option-btn.incorrect {
+            background-color: var(--incorrect-bg);
+            border-color: var(--incorrect-color);
+            color: var(--incorrect-color);
+            font-weight: bold;
+        }
+        
+        .option-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Next/Start/Restart Button */
+        #next-btn, #start-btn, #restart-btn {
+            display: block;
+            width: 50%;
+            margin: 2rem auto 0;
+            padding: 1rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        #next-btn:hover, #start-btn:hover, #restart-btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* Explanation */
+        #explanation-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #f8f9fa;
+            border-left: 5px solid var(--primary-color);
+            border-radius: 4px;
+        }
+        
+        #explanation-container h3 {
+            margin: 0 0 0.5rem;
+            color: var(--primary-color);
+        }
+        
+        #explanation-container p {
+            margin: 0;
+            line-height: 1.6;
+        }
+        #explanation-container code {
+            background-color: #e0e0e0;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        #explanation-container a {
+            color: var(--primary-hover);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <header>
+            <h1>Kubernetes &amp; コンテナ技術 習熟度クイズ</h1>
+            <p>提供された解説書を元にした知識確認クイズです。</p>
+        </header>
+
+        <main id="quiz-container">
+            <div id="start-screen">
+                <h2>学習の成果を試そう！</h2>
+                <p>全45問のクイズで、コンテナからGKE、GPU利用までの知識を網羅的にチェックします。各問題には詳しい解説が付いています。準備ができたら始めましょう！</p>
+                <button id="start-btn">クイズを開始</button>
+            </div>
+
+            <div id="quiz-screen" class="hidden">
+                <div id="quiz-header">
+                    <p id="progress-text"></p>
+                    <div id="progress-bar-container">
+                        <div id="progress-bar"></div>
+                    </div>
+                </div>
+                <h2 id="question">ここに問題文が入ります</h2>
+                <div id="options-container"></div>
+                <button id="next-btn" class="hidden">次の問題へ</button>
+                <div id="explanation-container" class="hidden">
+                    <h3>解説</h3>
+                    <p id="explanation-text"></p>
+                </div>
+            </div>
+
+            <div id="result-screen" class="hidden">
+                <h2>クイズ結果</h2>
+                <p>あなたのスコアは...</p>
+                <p id="score-text"></p>
+                <p id="score-message"></p>
+                <button id="restart-btn">もう一度挑戦する</button>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        const quizData = [
+            // Chapter 1
+            {
+                question: "仮想マシン(VM)と比較した際の、コンテナ技術の最も大きな利点は何ですか？",
+                options: [
+                    "各コンテナが独立したOSを持つため、高い分離性を実現できる",
+                    "ホストOSのカーネルを共有するため、軽量かつ高速に起動できる",
+                    "イメージサイズが非常に大きいため、ポータビリティが低い",
+                    "コンテナごとにハイパーバイザーが必要になる"
+                ],
+                answer: "ホストOSのカーネルを共有するため、軽量かつ高速に起動できる",
+                explanation: "コンテナはVMのようにゲストOSを持たず、ホストOSのカーネルを共有します。これによりOSのオーバーヘッドが無くなり、軽量・高速な起動、高密度な集約が可能になります。<br><b>他の選択肢：</b>AはVMの特徴です。CはVMのデメリットであり、コンテナはポータビリティが高いです。DはVMの仕組みであり、コンテナはコンテナランタイムを利用します。"
+            },
+            {
+                question: "コンテナイメージを作成するための「設計図」として機能するテキストファイルは何ですか？",
+                options: ["Imagefile", "Containerfile", "Dockerfile", "run.sh"],
+                answer: "Dockerfile",
+                explanation: "Dockerfileは、ベースイメージの指定、ファイルのコピー、コマンドの実行といった指示を記述し、<code>docker build</code>コマンドでこのファイルを元にコンテナイメージが作成されます。この「Dockerfile → Image → Container」という流れはコンテナ開発の基本です。<br><b>他の選択肢：</b>これらは一般的な名称ではありません。"
+            },
+            {
+                question: "「依存性地獄(Dependency Hell)」とは、どのような問題を指しますか？",
+                options: [
+                    "複数のアプリケーションが、同一ライブラリの異なるバージョンを要求し衝突する問題",
+                    "開発環境と本番環境のOSの違いによりアプリケーションが動かない問題",
+                    "1台のサーバーのリソースを使い切れず無駄が発生する問題",
+                    "コンテナイメージのビルドに非常に長い時間がかかる問題"
+                ],
+                answer: "複数のアプリケーションが、同一ライブラリの異なるバージョンを要求し衝突する問題",
+                explanation: "これは伝統的なサーバー運用で頻発した問題で、アプリAがライブラリXのver1.0を、アプリBがver2.0を必要とすると両立できませんでした。VMやコンテナによる環境分離がこの問題を解決します。<br><b>他の選択肢：</b>Bは「環境の再現が難しい」問題、Cは「リソースの無駄」の問題です。DはDockerfileの書き方の問題です。"
+            },
+            {
+                question: "Dockerfile内で、コンテナ起動時に実行されるデフォルトのコマンドを指定するのはどれですか？",
+                options: ["RUN", "COPY", "ENTRYPOINT", "CMD"],
+                answer: "CMD",
+                explanation: "<code>CMD</code>はコンテナが起動したときに実行されるコマンドを指定します。<code>docker run</code>時に引数を渡すと上書きできます。<code>ENTRYPOINT</code>も似ていますが、こちらは上書きされにくく、コンテナを特定の実行ファイルのように振る舞わせたい時に使います。<br><b>他の選択肢：</b><code>RUN</code>はイメージビルド時に実行され、<code>COPY</code>はファイルをイメージ内にコピーします。"
+            },
+            {
+                question: "`docker build`コマンドの直接的な出力(成果物)は何ですか？",
+                options: [
+                    "実行中のコンテナ",
+                    "コンテナイメージ",
+                    "Dockerfile",
+                    "ログファイル"
+                ],
+                answer: "コンテナイメージ",
+                explanation: "<code>docker build</code>はDockerfile（設計図）を読み込み、それに従ってレイヤーを積み重ね、最終的にコンテナイメージ（鋳型）を作成します。<br><b>他の選択肢：</b>実行中のコンテナは<code>docker run</code>で作成されます。Dockerfileは入力です。ログファイルはコンテナ実行時に出力されます。"
+            },
+            {
+                question: "コンテナが仮想マシンより『高密度』であると言われる主な理由は何ですか？",
+                options: [
+                    "コンテナのセキュリティが非常に高いため",
+                    "コンテナごとにOSのオーバーヘッドがないため",
+                    "コンテナは常にCPUを100%使用するため",
+                    "コンテナはネットワーク設定が不要なため"
+                ],
+                answer: "コンテナごとにOSのオーバーヘッドがないため",
+                explanation: "各VMはゲストOSを丸ごと含み、多くのCPUやメモリを消費します。一方、コンテナはホストOSのカーネルを共有するため、OS自体のリソース消費がありません。その結果、同じ物理サーバー上でより多くのコンテナを動かすことができます。"
+            },
+            {
+                question: "Dockerの内部で実際にコンテナの実行を担っていましたが、後に独立して業界標準となったコンテナランタイムはどれですか？",
+                options: ["Podman", "runc", "containerd", "Docker Engine"],
+                answer: "containerd",
+                explanation: "元々Dockerの一部だった<code>containerd</code>は、コンテナのライフサイクル管理（イメージ転送、ストレージ、コンテナ実行など）という中核機能に特化したコンポーネントとして独立し、CNCFに寄贈されました。Kubernetesも現在では主にcontainerdを利用しています。"
+            },
+            {
+                question: "アプリケーションとその実行環境が固まった、読み取り専用の「鋳型」や「テンプレート」のようなものはどれですか？",
+                options: ["Container", "Dockerfile", "Image", "Volume"],
+                answer: "Image",
+                explanation: "コンテナイメージは不変（immutable）であり、一度ビルドされると変更できません。このイメージを元に、書き込み可能なレイヤーを追加してコンテナ（実体）が起動します。この不変性が環境の一貫性を保証します。"
+            },
+            {
+                question: "コンテナの『どこでも動く』という高いポータビリティを実現している中心的な理由は何ですか？",
+                options: [
+                    "ホストのOSに関わらず、コンテナは常にLinuxとして動作するため",
+                    "アプリケーション本体と、その実行に必要なライブラリや設定が全てパッケージ化されているため",
+                    "Docker Hubが全てのコンテナの互換性を保証しているため",
+                    "コンテナはハイパーバイザーを内蔵しているため"
+                ],
+                answer: "アプリケーション本体と、その実行に必要なライブラリや設定が全てパッケージ化されているため",
+                explanation: "「船のコンテナ」の例えの通り、中身（アプリケーション）が何であれ、コンテナという標準化された箱に入れることで、Dockerが動く環境ならどこでも同じように動かせます。開発者のPCと本番サーバーの環境差異の問題を劇的に減らします。"
+            },
+             {
+                question: "Dockerの代替として注目されるPodmanが、Dockerと比較して持つ特徴として最もよく挙げられるものはどれですか？",
+                options: [
+                    "コンテナイメージの作成ができない",
+                    "Kubernetesとの連携機能が組み込まれている",
+                    "デーモンレスアーキテクチャで、よりセキュリティが高いとされる",
+                    "Windows環境でしか動作しない"
+                ],
+                answer: "デーモンレスアーキテクチャで、よりセキュリティが高いとされる",
+                explanation: "Dockerは常にroot権限で動作するデーモンプロセスに依存していますが、Podmanはデーモンを必要とせず、一般ユーザー権限でもPodやコンテナを管理できます。これにより、潜在的なセキュリティリスクが低減されると言われています。"
+            },
+            // Chapter 2
+            {
+                question: "多数のコンテナのデプロイ、スケーリング、管理を自動化する技術を何と呼びますか？",
+                options: ["コンテナランタイム", "コンテナオーケストレーション", "継続的インテグレーション(CI)", "仮想化"],
+                answer: "コンテナオーケストレーション",
+                explanation: "コンテナが数個なら手動でも管理できますが、大規模なシステムでは自動化が不可欠です。コンテナのライフサイクル管理全般を自動化する仕組みが「コンテナオーケストレーション」であり、Kubernetesはその代表格です。"
+            },
+            {
+                question: "Kubernetesの内部で、Googleが長年培ってきた大規模システム運用のノウハウの元となった社内システムは何ですか？",
+                options: ["Hadoop と MapReduce", "Borg と Omega", "GFS と Bigtable", "Spanner と F1"],
+                answer: "Borg と Omega",
+                explanation: "Kubernetesは、Googleが社内でGmailや検索エンジンなどの巨大サービスを運用するために開発したコンテナオーケストレーションシステム「Borg」と、その後継「Omega」から得た知見を元に作られました。まさに巨大ITサービスの運用ノウハウの結晶と言えます。"
+            },
+            {
+                question: "「Kubernetes」という名前がギリシャ語で意味するものはどれですか？",
+                options: ["指揮者", "コンテナ船", "航海長、操舵手", "集合体"],
+                answer: "航海長、操舵手",
+                explanation: "Kubernetesはギリシャ語で「航海長」や「操舵手」を意味し、多数のコンテナ（船）を率いて航海するリーダーというイメージを表しています。ロゴが船の舵になっているのもそのためです。"
+            },
+            {
+                question: "なぜコンテナオーケストレーションが必要になったのでしょうか？その理由として最も当てはまらないものはどれですか？",
+                options: [
+                    "コンテナの障害を自動で検知し、自己修復するため",
+                    "サービスを停止せずにアプリケーションをアップデートするため",
+                    "トラフィックに応じてコンテナの数を自動で増減させるため",
+                    "Dockerfileの作成を自動化するため"
+                ],
+                answer: "Dockerfileの作成を自動化するため",
+                explanation: "Dockerfileの作成はアプリケーション開発者自身が行う作業です。オーケストレーションツールは、そのようにして作られたコンテナイメージを元に、デプロイ後の運用（自己修復、アップデート、スケーリングなど）を自動化する役割を担います。"
+            },
+            {
+                question: "Kubernetesはしばしば「K8s」と略されますが、これはなぜですか？",
+                options: [
+                    "開発者の間で流行ったニックネームだから",
+                    "バージョン8が画期的なリリースだったから",
+                    "主要なコンポーネントが8つあるから",
+                    "Kとsの間に8文字あるから"
+                ],
+                answer: "Kとsの間に8文字あるから",
+                explanation: "このような略し方はNumeronym（数略語）と呼ばれ、Internationalization(i18n)やLocalization(l10n)などでも見られます。「K(ubernete)s」の8文字を数字の8で置き換えています。"
+            },
+            // Chapter 3
+            {
+              question: "Kubernetesクラスターの全体の状態を保存する、キーバリュー型のデータベースコンポーネントは何ですか？",
+                options: ["kube-api-server", "kube-scheduler", "kubelet", "etcd"],
+                answer: "etcd",
+                explanation: "etcdはコントロールプレーンにある重要なコンポーネントで、クラスター内の全構成データ（どのPodがどこで動いているか等）を保存する分散キーバリューストアです。クラスターの「記憶装置」として機能し、その信頼性がクラスター全体の安定性に直結します。"
+            },
+            {
+                question: "Kubernetesのワーカーノード上で動作し、コントロールプレーンからの指示を受けてPodの起動や監視を行うエージェントは何ですか？",
+                options: ["kube-proxy", "Scheduler", "Containerd", "Kubelet"],
+                answer: "Kubelet",
+                explanation: "Kubeletは各ワーカーノードに常駐し、コントロールプレーンのAPI Serverと通信します。「Podを起動せよ」という指示を受け取り、コンテナランタイムにコンテナの起動を依頼したり、Podが正常か監視して報告する重要な役割を担います。"
+            },
+            {
+                question: "Kubernetesクラスターの司令塔の役割を果たすコンポーネント群をまとめて何と呼びますか？",
+                options: ["Worker Nodes", "Cluster", "Control Plane", "etcd"],
+                answer: "Control Plane",
+                explanation: "コントロールプレーンはクラスター全体の管理と意思決定を行う「脳」や「司令塔」です。API Server、etcd、Scheduler、Controller Managerなどのコンポーネントで構成されます。<br><b>他の選択肢：</b>Worker Nodesは実際にコンテナが動く場所、ClusterはControl PlaneとWorker Nodes全体を指します。"
+            },
+            {
+                question: "ユーザーからのリクエスト(例: kubectl)やコンポーネント間の通信をすべて受け付ける、クラスターの唯一の窓口となるコンポーネントは何ですか？",
+                options: ["etcd", "Controller Manager", "API Server", "Kubelet"],
+                answer: "API Server",
+                explanation: "API Server (kube-api-server) はコントロールプレーンの玄関口であり、全ての操作はこのAPIを通して行われます。状態の変更はAPI Serverによって検証され、etcdに保存されます。"
+            },
+            {
+                question: "クラスターの状態を常に監視し、「あるべき姿」と「現在の姿」の差を修正し続けるコンポーネントは何ですか？",
+                options: ["Scheduler", "Controller Manager", "API Server", "Kube-proxy"],
+                answer: "Controller Manager",
+                explanation: "Controller Manager (kube-controller-manager) は、Replication Controller, Deployment Controllerなど複数のコントローラーを実行するプロセスです。例えば「Podが3つあるべき」なのに2つしかない場合、それを検知して新しいPodを1つ作成するよう指示します。これがKubernetesの自己修復機能の中核です。"
+            },
+            {
+                question: "ワーカーノード上でコンテナ間のネットワーク通信を可能にしたり、Serviceのルールを管理したりする役割を担うコンポーネントは何ですか？",
+                options: ["Kubelet", "Container Runtime", "kube-proxy", "etcd"],
+                answer: "kube-proxy",
+                explanation: "kube-proxyは各ワーカーノード上で動作するネットワークプロキシで、KubernetesのServiceの概念を実現します。Podへのトラフィックを適切なPodに転送するためのネットワークルール（iptablesなど）をノード上に設定します。"
+            },
+             {
+                question: "新しくPodを起動する際、「どのワーカーノードに配置するのが最適か」を決定するコントロールプレーンのコンポーネントは何ですか？",
+                options: ["Controller Manager", "Kubelet", "Scheduler", "API Server"],
+                answer: "Scheduler",
+                explanation: "Scheduler (kube-scheduler) は、まだノードに割り当てられていないPodを発見し、CPUやメモリの要求、その他の制約に基づいて最適なワーカーノードを選定します。配置先を決定する「配車係」のような役割です。"
+            },
+            {
+                question: "etcdに障害が発生した場合、クラスターにどのような影響が最も考えられますか？",
+                options: [
+                    "稼働中のPodは即座に停止する",
+                    "クラスターの状態が読み書きできなくなり、新たな変更や管理が不能になる",
+                    "新しいワーカーノードを追加できなくなるだけである",
+                    "ネットワーク通信だけが切断される"
+                ],
+                answer: "クラスターの状態が読み書きできなくなり、新たな変更や管理が不能になる",
+                explanation: "etcdはクラスターの全ての状態を保存する唯一の真実の源(Source of Truth)です。etcdが停止すると、API Serverはクラスターの状態を読み書きできなくなり、Podの新規作成、削除、更新などの全ての管理操作が失敗します。ただし、既に稼働中のPodは直ちには影響を受けない場合もあります。"
+            },
+            {
+                question: "Kubernetesにおける「ノード(Node)」とは、最も正確には何を指しますか？",
+                options: [
+                    "Pod内で実行される個々のコンテナ",
+                    "Kubernetesクラスターを構成する1台の物理マシンまたは仮想マシン",
+                    "クラスター全体を指す言葉",
+                    "ネットワーク上の単一のIPアドレス"
+                ],
+                answer: "Kubernetesクラスターを構成する1台の物理マシンまたは仮想マシン",
+                explanation: "ノードはKubernetesのワーカーマシンであり、コンテナが実際に動作する場所です。これらはコントロールプレーンによって管理されます。[cloud.google.com](https://cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler)"
+            },
+            {
+                question: "次のうち、コントロールプレーンではなく、ワーカーノードで実行されるコンポーネントの正しい組み合わせはどれですか？",
+                options: [
+                    "API Server, etcd",
+                    "Scheduler, Controller Manager",
+                    "Kubelet, kube-proxy",
+                    "API Server, Kubelet"
+                ],
+                answer: "Kubelet, kube-proxy",
+                explanation: "Kubeletとkube-proxyは、各ワーカーノードに常駐して、コントロールプレーンからの指示を実行したり、ノードレベルのタスク（Pod管理、ネットワーク設定）を行ったりします。他の選択肢に含まれるAPI Server, etcd, Scheduler, Controller Managerはすべてコントロールプレーンのコンポーネントです。"
+            },
+            // Chapter 4
+            {
+                question: "Kubernetesがデプロイ（配置）や管理を行える最小の単位は何ですか？",
+                options: ["Container", "Node", "Pod", "ReplicaSet"],
+                answer: "Pod",
+                explanation: "PodはKubernetesにおけるデプロイの最小単位です。Podは1つ以上のコンテナを内包するカプセルのようなもので、同じPod内のコンテナはネットワークやストレージを共有できます。Kubernetesはコンテナを直接管理するのではなく、Podという単位で管理します。"
+            },
+            {
+                question: "アプリケーションのバージョンアップを、サービスを停止せずに行う「ローリングアップデート」機能などを提供するKubernetesオブジェクトは何ですか？",
+                options: ["Service", "Deployment", "Job", "DaemonSet"],
+                answer: "Deployment",
+                explanation: "Deploymentは、PodとReplicaSetを宣言的に管理するためのオブジェクトです。Podのあるべき状態（レプリカ数やコンテナイメージなど）を定義し、ローリングアップデートやロールバックといった高度なリリース戦略を簡単に実現できます。"
+            },
+            {
+                question: "Podが頻繁に作成・削除されてIPアドレスが変わっても、アプリケーションに安定したアクセスポイントを提供するためのKubernetesオブジェクトは何ですか？",
+                options: ["Service", "Ingress", "Endpoint", "StatefulSet"],
+                answer: "Service",
+                explanation: "Podは短命でIPアドレスが変わり得ます。Serviceは、特定のラベルを持つPod群に対して、単一の固定されたDNS名とIPアドレス（ClusterIP）を提供します。これにより、他のPodはServiceの名前で安定してアクセスできます。"
+            },
+            {
+                question: "夜間に一度だけ実行するデータベースのバックアップ処理のように、完了したら終了するタスクに適したKubernetesオブジェクトはどれですか？",
+                options: [
+                    "Deployment",
+                    "DaemonSet",
+                    "StatefulSet",
+                    "Job"
+                ],
+                answer: "Job",
+                explanation: "Deploymentなどが継続的に実行されるサービス（デーモン）を意図しているのに対し、Jobは特定のタスクを実行し、正常に完了したら終了する「バッチ処理」のために設計されています。失敗した場合は再試行させることも可能です。"
+            },
+             {
+                question: "Deploymentが直接管理し、Podのレプリカ数を保証する役割を持つ下位のオブジェクトは何ですか？",
+                options: [
+                    "Pod",
+                    "ReplicaSet",
+                    "Service",
+                    "Job"
+                ],
+                answer: "ReplicaSet",
+                explanation: "ユーザーは主にDeploymentを操作しますが、内部的にはDeploymentがReplicaSetを作成・管理します。ローリングアップデートの際には、Deploymentは新しいバージョンのReplicaSetを作成し、古いReplicaSetのPodを徐々に減らしていきます。この仕組みによって安全なアップデートが実現されます。"
+            },
+            {
+                question: "なぜKubernetesではコンテナを直接デプロイせず、Podという抽象化レイヤーを設けているのですか？",
+                options: [
+                    "セキュリティを強化するため",
+                    "コンテナの起動を高速化するため",
+                    "密接に関連する複数のコンテナをひとまとめに扱い、リソースを共有させるため",
+                    "コンテナイメージのサイズを小さくするため"
+                ],
+                answer: "密接に関連する複数のコンテナをひとまとめに扱い、リソースを共有させるため",
+                explanation: "例えば、メインのアプリケーションコンテナと、そのログを収集・転送するサイドカーコンテナを同じPodに入れることがあります。同じPod内のコンテナはネットワーク名前空間（localhostで通信できる）やストレージボリュームを共有できるため、緊密な連携が可能になります。"
+            },
+            {
+                question: "Serviceがトラフィックを転送すべきPod群を特定するために使用するメカニズムは何ですか？",
+                options: [
+                    "Pod名",
+                    "ノード名",
+                    "ラベルとセレクター",
+                    "IPアドレス範囲"
+                ],
+                answer: "ラベルとセレクター",
+                explanation: "Podに<code>app: backend</code>のようなラベルを付け、Serviceのセレクターで<code>app: backend</code>を指定します。するとServiceは、そのラベルを持つ全てのPodを検出し、それらにトラフィックを自動で負荷分散します。この疎結合な仕組みがKubernetesの柔軟性を支えています。"
+            },
+            {
+                question: "Podは「短命(ephemeral)」であると言われます。これはどのような性質を意味しますか？",
+                options: [
+                    "Podは数秒で起動し、数秒で停止する",
+                    "Podにはデータを永続的に保存できない",
+                    "Podは障害などで停止すると、同じIDで復活するのではなく、新しいPodとして別の場所に再作成される",
+                    "Podは一度に1つしかコンテナを含められない"
+                ],
+                answer: "Podは障害などで停止すると、同じIDで復活するのではなく、新しいPodとして別の場所に再作成される",
+                explanation: "Podは使い捨ての存在として設計されています。障害が発生した場合、ReplicaSetやDeploymentが新しいPodを作成しますが、それは以前のPodとは異なるIPアドレスやIDを持つ全く別のものです。そのため、特定のPodに直接依存するアプリケーション設計は避けるべきです。"
+            },
+            {
+                question: "サービスのアップデート中に問題が発見された場合、Deploymentが持つ、簡単なコマンドで前のバージョンに戻す機能を何と呼びますか？",
+                options: ["リセット", "リバート", "ロールバック", "リストア"],
+                answer: "ロールバック",
+                explanation: "Deploymentはリビジョン履歴を保持しているため、<code>kubectl rollout undo deployment/&lt;name&gt;</code>のようなコマンド一つで、システムを以前の安定したバージョンのReplicaSetに安全に戻すことができます。これがローリングアップデートと並ぶDeploymentの強力な機能です。"
+            },
+            {
+                question: "すべてのワーカーノード上で、ログ収集エージェントや監視エージェントを１つずつ実行させたい場合、どのKubernetesオブジェクトが最も適していますか？",
+                options: ["Deployment", "Job", "DaemonSet", "StatefulSet"],
+                answer: "DaemonSet",
+                explanation: "DaemonSetは、クラスター内の全ノード（または特定のラベルを持つノード）に、Podのコピーが1つずつ稼働している状態を保証します。これは、ノード単位で必要なシステムレベルのタスクを実行するのに最適です。"
+            },
+            // Chapter 5
+            {
+                question: "GKE(Google Kubernetes Engine)のAutopilotモードの最も大きな特徴は何ですか？",
+                options: [
+                    "ワーカーノードのOSやインスタンスタイプをユーザーが細かく設定できる",
+                    "コントロールプレーンだけでなくワーカーノードの管理もGoogleに任せられる",
+                    "Standardモードよりも常に料金が高い",
+                    "Kubernetesの全機能を自由にカスタマイズできる"
+                ],
+                answer: "コントロールプレーンだけでなくワーカーノードの管理もGoogleに任せられる",
+                explanation: "GKE Autopilotモードは、コントロールプレーンに加えてワーカーノードのプロビジョニングと管理もGoogleが自動で行う、運用負荷が大幅に低いモードです。ユーザーはノードの心配をせず、アプリケーション（Pod）に集中できます。[cloud.google.com](https://cloud.google.com/kubernetes-engine)"
+            },
+            {
+                question: "PodのCPU使用率などのメトリクスを監視し、負荷に応じて自動的にPodのレプリカ数を増減させるKubernetesの機能は何ですか？",
+                options: ["Vertical Pod Autoscaler (VPA)", "Cluster Autoscaler (CA)", "Horizontal Pod Autoscaler (HPA)", "ReplicaSet"],
+                answer: "Horizontal Pod Autoscaler (HPA)",
+                explanation: "HPAはPodの数を水平(Horizontal)に増減させます。CPU使用率などを監視し、定義した閾値を超えるとDeploymentのレプリカ数を自動的に変更します。これにより、トラフィックの波に対応し、コストとパフォーマンスを最適化します。[cloud.google.com](https://cloud.google.com/blog/products/containers-kubernetes/rearchitected-gke-hpa-improves-scaling-performance)"
+            },
+            {
+                question: "1つの物理的なNVIDIA GPUを、ハードウェアレベルで複数の独立した「ミニGPU」に分割する技術は何ですか？",
+                options: ["タイムスライシング (Time-slicing)", "GPUパススルー", "NVIDIA Multi-Instance GPU (MIG)", "Dynamic Resource Allocation (DRA)"],
+                answer: "NVIDIA Multi-Instance GPU (MIG)",
+                explanation: "NVIDIA MIGは、対応GPU（A100など）をハードウェアレベルで完全に分離された複数のGPUインスタンスに分割します。それぞれが独立したリソースを持つため、性能の干渉がなく、安全にGPUを共有できます。"
+            },
+            {
+                question: "GKE StandardモードとAutopilotモードの最も大きな違いは何ですか？",
+                options: [
+                    "使用できるリージョンが異なる",
+                    "コントロールプレーンの管理者が異なる",
+                    "ワーカーノードの管理責任の所在",
+                    "サポートされるコンテナランタイムが異なる"
+                ],
+                answer: "ワーカーノードの管理責任の所在",
+                explanation: "GKE Standardではユーザーがワーカーノードのインスタンスタイプやサイズ、数などを管理する責任を持ちます。一方、AutopilotではGKEがノードを完全に管理し、ユーザーはノードを意識する必要がありません。これが運用モデルと課金モデルの根本的な違いを生みます。[cloud.google.com](https://cloud.google.com/kubernetes-engine/docs/resources/autopilot-standard-feature-comparison)"
+            },
+            {
+                question: "GKE Autopilotの課金モデルの主な特徴は何ですか？",
+                options: [
+                    "ワーカーノードの稼働時間に対して課金される",
+                    "PodがリクエストしたCPUやメモリなどのリソース量に対して課金される",
+                    "クラスターを作成した時点で固定の月額料金が発生する",
+                    "ネットワークトラフィック量のみに課金される"
+                ],
+                answer: "PodがリクエストしたCPUやメモリなどのリソース量に対して課金される",
+                explanation: "GKE Autopilotでは、ノード全体を確保するのではなく、実行しているPodが要求（request）したリソースの量と実行時間に基づいて課金されます。これにより、リソースの無駄が少なく、コスト効率の高い運用が期待できます。"
+            },
+            {
+                question: "HPAがPodの数をスケールさせるトリガーとして、一般的に使用されるメトリクスは何ですか？",
+                options: [
+                    "ディスクI/O",
+                    "ワーカーノードの台数",
+                    "CPU使用率やメモリ使用量",
+                    "コンテナイメージのサイズ"
+                ],
+                answer: "CPU使用率やメモリ使用量",
+                explanation: "HPAは最も一般的には、管理対象のPod群の平均CPU使用率や平均メモリ使用量を監視します。カスタムメトリクス（例：秒間リクエスト数）や外部メトリクス（例：キューの長さ）をトリガーにすることも可能です。"
+            },
+            {
+                question: "GPU共有技術であるMIGとタイムスライシングの主な違いに関する記述として、最も適切なものはどれですか？",
+                options: [
+                    "MIGはソフトウェア分割、タイムスライシングはハードウェア分割である",
+                    "MIGは性能保証があるが、タイムスライシングは他のコンテナの影響で性能が変動する可能性がある",
+                    "タイムスライシングは高価なGPUでしか使えず、MIGは多くのGPUで使える",
+                    "MIGは動的に分割できるが、タイムスライシングの分割数は固定"
+                ],
+                answer: "MIGは性能保証があるが、タイムスライシングは他のコンテナの影響で性能が変動する可能性がある",
+                explanation: "MIGはハードウェアレベルでリソースを完全に分離するため、各インスタンスの性能が保証されます（高いアイソレーション）。一方、タイムスライシングは処理時間を共有するため、他のコンテナの負荷が高いと自分の処理が待たされる可能性があります。"
+            },
+            {
+                question: "GPUのタイムスライシング共有が最も適しているユースケースはどれですか？",
+                options: [
+                    "複数の大規模なAIモデルを厳密な性能要件で同時に学習させるタスク",
+                    "単一のコンテナでGPUリソースを完全に独占したいタスク",
+                    "常にGPUを100%は使用しない、多数の開発環境や小規模な推論タスク",
+                    "ハードウェアレベルでのセキュリティ分離が必須のタスク"
+                ],
+                answer: "常にGPUを100%は使用しない、多数の開発環境や小規模な推論タスク",
+                explanation: "タイムスライシングは1つのGPUを多くのコンテナで分け合うため、各コンテナのGPU使用率が断続的、あるいは低い場合にリソース効率が最大化されます。開発やデバッグ、軽量な推論エンドポイントなどに適しています。<br><b>他の選択肢：</b>AやDはMIGが、BはGPUを専有する設定が適しています。"
+            },
+            {
+                question: "NVIDIA MIGを使用する上での制約・デメリットとして挙げられるものは何ですか？",
+                options: [
+                    "ソフトウェアレベルの分離であるためセキュリティに懸念がある",
+                    "対応している高価なGPU（例: NVIDIA A100）が必要である",
+                    "性能保証がなく、パフォーマンスが不安定になることがある",
+                    "あらゆる種類のGPUで利用できる"
+                ],
+                answer: "対応している高価なGPU（例: NVIDIA A100）が必要である",
+                explanation: "MIGは非常に強力な機能ですが、NVIDIAの特定のデータセンター向けGPU（A100, H100など）でのみサポートされています。この点が導入のハードルになることがあります。<br><b>他の選択肢：</b>AとCはタイムスライシングのデメリットです。Dは誤りです。"
+            },
+            {
+                question: "Kubernetesの比較的新しい機能であるDRA (Dynamic Resource Allocation) が解決しようとしている課題は何ですか？",
+                options: [
+                    "Podのレプリカ数を自動でスケーリングすること",
+                    "クラスターのコントロールプレーンを自動で管理すること",
+                    "GPUなどの特殊なリソースを、より柔軟かつ詳細な条件でPodに割り当てること",
+                    "コンテナのネットワークポリシーを簡素化すること"
+                ],
+                answer: "GPUなどの特殊なリソースを、より柔軟かつ詳細な条件でPodに割り当てること",
+                explanation: "DRAは、従来の「GPUを1つ」という単純な要求を超え、「NVIDIA A100のMIGインスタンス(2g.20gb)が欲しい」や「特定の機能を持つFPGAが欲しい」といった、より動的でパラメーター化されたリソース要求を可能にするためのフレームワークです。"
+            }
+        ];
+
+        // Shuffle questions
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+        
+        shuffle(quizData);
+        const quizQuestions = quizData.slice(0, 45);
+
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+
+        const startBtn = document.getElementById('start-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        const questionEl = document.getElementById('question');
+        const optionsContainer = document.getElementById('options-container');
+        const explanationContainer = document.getElementById('explanation-container');
+        const explanationTextEl = document.getElementById('explanation-text');
+        
+        const progressText = document.getElementById('progress-text');
+        const progressBar = document.getElementById('progress-bar');
+        
+        const scoreTextEl = document.getElementById('score-text');
+        const scoreMessageEl = document.getElementById('score-message');
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        function startQuiz() {
+            startScreen.classList.add('hidden');
+            resultScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            
+            shuffle(quizQuestions);
+            currentQuestionIndex = 0;
+            score = 0;
+            
+            showQuestion();
+        }
+
+        function showQuestion() {
+            explanationContainer.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            
+            const currentQuestion = quizQuestions[currentQuestionIndex];
+            
+            // Update progress
+            progressText.textContent = `問題 ${currentQuestionIndex + 1} / ${quizQuestions.length}`;
+            progressBar.style.width = `${((currentQuestionIndex + 1) / quizQuestions.length) * 100}%`;
+
+            questionEl.textContent = currentQuestion.question;
+            optionsContainer.innerHTML = '';
+
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.innerHTML = option; // Use innerHTML to render code tags etc.
+                button.classList.add('option-btn');
+                button.addEventListener('click', selectAnswer);
+                optionsContainer.appendChild(button);
+            });
+        }
+        
+        function selectAnswer(e) {
+            const selectedButton = e.currentTarget;
+            const currentQuestion = quizQuestions[currentQuestionIndex];
+            const correctAnswer = currentQuestion.answer;
+            let feedback = '';
+
+            if (selectedButton.textContent === correctAnswer) {
+                selectedButton.classList.add('correct');
+                score++;
+                feedback = `<span style="color: var(--correct-color); font-weight: bold;">正解！</span><br>`;
+            } else {
+                selectedButton.classList.add('incorrect');
+                feedback = `<span style="color: var(--incorrect-color); font-weight: bold;">不正解...</span><br>`;
+            }
+
+            Array.from(optionsContainer.children).forEach(button => {
+                button.disabled = true;
+                if (button.textContent === correctAnswer) {
+                    button.classList.add('correct');
+                }
+            });
+
+            explanationTextEl.innerHTML = feedback + currentQuestion.explanation;
+            explanationContainer.classList.remove('hidden');
+            
+            if (currentQuestionIndex < quizQuestions.length - 1) {
+              nextBtn.textContent = "次の問題へ";
+            } else {
+              nextBtn.textContent = "結果を見る";
+            }
+            nextBtn.classList.remove('hidden');
+        }
+
+        function showNextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizQuestions.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+        
+        function showResults() {
+            quizScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+
+            scoreTextEl.textContent = `${score} / ${quizQuestions.length} 正解！`;
+
+            const percentage = score / quizQuestions.length;
+            let message = '';
+            if (percentage === 1) {
+                message = '完璧です！あなたはKubernetesマスターです！';
+            } else if (percentage >= 0.8) {
+                message = '素晴らしい成績です！よく理解できています。';
+            } else if (percentage >= 0.6) {
+                message = '良いスコアです！あと一歩で完璧です。';
+            } else if (percentage >= 0.4) {
+                 message = 'まずまずの成績です。もう一度復習してみましょう。';
+            }else {
+                message = 'もう少し頑張りましょう！解説を読み返して再挑戦してみてください。';
+            }
+            scoreMessageEl.textContent = message;
+        }
+
+        startBtn.addEventListener('click', startQuiz);
+        nextBtn.addEventListener('click', showNextQuestion);
+        restartBtn.addEventListener('click', startQuiz);
+
+    </script>
+</body>
+</html>
