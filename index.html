@@ -308,18 +308,19 @@
                 }
                 /* --- Quiz button & top bar ------------------------------------- */
         .top-bar{
-            grid-column: 1 / -1;          /* サイドバー＋本文をまたぐ */
-            height: var(--header-height); /* = 60px (既に定義済み)      */
+            grid-column: 1 / -1;          /* ← 2カラムをまたぐ */
+            height: var(--header-height); /* = 60px */
             display: flex;
             justify-content: center;
             align-items: center;
             background:#fff;
             border-bottom:1px solid var(--border-color);
-            box-shadow: var(--shadow);
-            position: sticky;             /* スクロールしても上部固定 */
-            top:0;
-            z-index:1000;
+            /* ↓ この 3 行を削除またはコメントアウト */
+            /* position: sticky;           
+               top:0;
+               z-index:1000; */
         }
+        /* 残りはそのまま */
         .quiz-button{
             background: var(--primary-color);
             color:#fff;
